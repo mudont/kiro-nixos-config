@@ -148,7 +148,7 @@
       # Function to backup a database
       backup_database() {
         local db_name=$1
-        local backup_file="$BACKUP_DIR/${db_name}_$DATE.sql.gz"
+        local backup_file="$BACKUP_DIR/''${db_name}_$DATE.sql.gz"
         
         echo "Backing up database: $db_name"
         ${pkgs.postgresql_15}/bin/pg_dump -h localhost -U postgres "$db_name" | gzip > "$backup_file"
