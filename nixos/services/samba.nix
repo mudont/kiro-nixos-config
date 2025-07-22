@@ -7,74 +7,73 @@
     enable = true;
     
     # Use SMB3 protocol for iOS compatibility and security
-    extraConfig = ''
-      # Global settings
-      workgroup = WORKGROUP
-      server string = NixOS Home Server
-      netbios name = nixos
+    settings = {
+      global = {
+        # Global settings
+        workgroup = "WORKGROUP";
+        "server string" = "NixOS Home Server";
+        "netbios name" = "nixos";
+        
+        # Security settings
+        security = "user";
+        "map to guest" = "never";
+        
+        # Protocol settings - SMB3 for iOS compatibility
+        "server min protocol" = "SMB3_00";
+        "server max protocol" = "SMB3_11";
+        "client min protocol" = "SMB3_00";
+        "client max protocol" = "SMB3_11";
+        
+        # Performance and compatibility
+        "socket options" = "TCP_NODELAY IPTOS_LOWDELAY SO_RCVBUF=131072 SO_SNDBUF=131072";
+        "read raw" = "yes";
+        "write raw" = "yes";
+        "max xmit" = "65535";
+        "dead time" = "15";
+        "getwd cache" = "yes";
+        
+        # Network discovery and browsing
+        "local master" = "yes";
+        "preferred master" = "yes";
+        "domain master" = "yes";
+        "os level" = "65";
+        
+        # Logging
+        "log file" = "/var/log/samba/log.%m";
+        "max log size" = "50";
+        "log level" = "1";
+        
+        # Character encoding for international support
+        "unix charset" = "UTF-8";
+        "dos charset" = "CP850";
+        
+        # Disable printer sharing
+        "load printers" = "no";
+        printing = "bsd";
+        "printcap name" = "/dev/null";
+        "disable spoolss" = "yes";
+        
+        # Security enhancements
+        "restrict anonymous" = "2";
+        "lanman auth" = "no";
+        "ntlm auth" = "no";
+        "raw NTLMv2 auth" = "no";
+        "client NTLMv2 auth" = "yes";
+        "client lanman auth" = "no";
+        "client plaintext auth" = "no";
+        
+        # Rate limiting and connection management
+        "max connections" = "50";
+        deadtime = "10";
+        keepalive = "30";
+        
+        # Enable wide links for better performance (with security considerations)
+        "unix extensions" = "no";
+        "wide links" = "yes";
+        "follow symlinks" = "yes";
+      };
       
-      # Security settings
-      security = user
-      map to guest = never
-      
-      # Protocol settings - SMB3 for iOS compatibility
-      server min protocol = SMB3_00
-      server max protocol = SMB3_11
-      client min protocol = SMB3_00
-      client max protocol = SMB3_11
-      
-      # Performance and compatibility
-      socket options = TCP_NODELAY IPTOS_LOWDELAY SO_RCVBUF=131072 SO_SNDBUF=131072
-      read raw = yes
-      write raw = yes
-      max xmit = 65535
-      dead time = 15
-      getwd cache = yes
-      
-      # Network discovery and browsing
-      local master = yes
-      preferred master = yes
-      domain master = yes
-      os level = 65
-      
-      # Logging
-      log file = /var/log/samba/log.%m
-      max log size = 50
-      log level = 1
-      
-      # Character encoding for international support
-      unix charset = UTF-8
-      dos charset = CP850
-      
-      # Disable printer sharing
-      load printers = no
-      printing = bsd
-      printcap name = /dev/null
-      disable spoolss = yes
-      
-      # Security enhancements
-      restrict anonymous = 2
-      lanman auth = no
-      ntlm auth = no
-      raw NTLMv2 auth = no
-      client NTLMv2 auth = yes
-      client lanman auth = no
-      client plaintext auth = no
-      
-      # Rate limiting and connection management
-      max connections = 50
-      deadtime = 10
-      keepalive = 30
-      
-      # Enable wide links for better performance (with security considerations)
-      unix extensions = no
-      wide links = yes
-      follow symlinks = yes
-    '';
-    
-    # Configure shares
-    shares = {
-      # Public share accessible from internet with restrictions
+      # Configure shares
       public-share = {
         path = "/srv/public-share";
         browseable = "yes";
@@ -157,8 +156,7 @@
     };
   };
   
-  # Enable Samba client utilities
-  services.samba.enableWinbind = false; # We don't need Active Directory integration
+  # Note: Winbind is not needed for this configuration (no Active Directory integration)
   
   # Ensure Samba user database is properly managed
   # Users will need to be added with smbpasswd command

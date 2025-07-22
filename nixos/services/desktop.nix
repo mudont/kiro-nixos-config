@@ -12,7 +12,6 @@
     # Configure display manager
     displayManager = {
       lightdm.enable = true;
-      defaultSession = "xfce";
     };
     
     # Configure keyboard layout
@@ -27,6 +26,9 @@
       Option "DRI" "false"
     '';
   };
+  
+  # Configure display manager (moved from services.xserver.displayManager)
+  services.displayManager.defaultSession = "xfce";
   
   # Essential desktop applications and utilities
   environment.systemPackages = with pkgs; [
@@ -77,9 +79,14 @@
   # Configure XFCE settings for optimal remote desktop performance
   services.xserver.desktopManager.xfce.enableXfwm = true;
   
-  # Enable sound support
-  sound.enable = true;
-  hardware.pulseaudio.enable = true;
+  # Enable sound support with PipeWire (modern audio system)
+  security.rtkit.enable = true;
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+  };
   
   # NetworkManager is already enabled in networking.nix
   
@@ -88,7 +95,7 @@
     dejavu_fonts
     liberation_ttf
     noto-fonts
-    noto-fonts-cjk
+    noto-fonts-cjk-sans
     noto-fonts-emoji
   ];
   
@@ -145,10 +152,7 @@
     '';
   };
   
-  # Configure sesman for session management
-  services.xrdp.sesman = {
-    enable = true;
-  };
+  # Note: sesman is automatically configured with xrdp service
   
   # Additional XRDP configuration files
   environment.etc."xrdp/sesman.ini".text = ''

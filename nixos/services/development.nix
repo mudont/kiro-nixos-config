@@ -15,25 +15,15 @@
   # Enable Podman as Docker alternative
   virtualisation.podman = {
     enable = true;
-    dockerCompat = true;
+    # dockerCompat disabled to avoid conflict with Docker service
+    dockerCompat = false;
     defaultNetwork.settings.dns_enabled = true;
   };
 
   # Enable container networking
   virtualisation.containers.enable = true;
 
-  # Enable fail2ban for security
-  services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "10m";
-    bantime-increment = {
-      enable = true;
-      multipliers = "1 2 4 8 16 32 64";
-      maxtime = "168h";
-      overalljails = true;
-    };
-  };
+  # Note: fail2ban is configured in security.nix
 
   # Enable zsh system-wide
   programs.zsh.enable = true;

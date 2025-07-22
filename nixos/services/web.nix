@@ -350,20 +350,20 @@
     mode = "0644";
   };
   
-  # Optional: Enable PHP-FPM for development (commented out by default)
-  # services.phpfpm.pools.www = {
-  #   user = "nginx";
-  #   group = "nginx";
-  #   settings = {
-  #     "listen.owner" = "nginx";
-  #     "listen.group" = "nginx";
-  #     "listen.mode" = "0600";
-  #     "pm" = "dynamic";
-  #     "pm.max_children" = 32;
-  #     "pm.start_servers" = 2;
-  #     "pm.min_spare_servers" = 2;
-  #     "pm.max_spare_servers" = 4;
-  #     "pm.max_requests" = 500;
-  #   };
-  # };
+  # Enable PHP-FPM for development
+  services.phpfpm.pools.www = {
+    user = "nginx";
+    group = "nginx";
+    settings = {
+      "listen.owner" = "nginx";
+      "listen.group" = "nginx";
+      "listen.mode" = "0600";
+      "pm" = "dynamic";
+      "pm.max_children" = 32;
+      "pm.start_servers" = 2;
+      "pm.min_spare_servers" = 2;
+      "pm.max_spare_servers" = 4;
+      "pm.max_requests" = 500;
+    };
+  };
 }

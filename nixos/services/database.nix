@@ -104,7 +104,7 @@
     '';
     
     # Enable additional extensions
-    extraPlugins = with pkgs.postgresql_15.pkgs; [
+    extensions = with pkgs.postgresql_15.pkgs; [
       pg_repack
       pgvector
       postgis

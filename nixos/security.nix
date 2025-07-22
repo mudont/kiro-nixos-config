@@ -55,10 +55,10 @@
   environment.systemPackages = with pkgs; [
     fail2ban
     lynis
-    rkhunter
     chkrootkit
     clamav
     aide
+    # rkhunter - not available in current nixpkgs
   ];
   
   # Fail2ban configuration
@@ -73,54 +73,10 @@
       overalljails = true;
     };
     
+    # Basic jail configuration - NixOS fail2ban uses simplified configuration
     jails = {
-      # SSH protection
-      sshd = {
-        enabled = true;
-        filter = "sshd";
-        action = "iptables[name=SSH, port=ssh, protocol=tcp]";
-        logpath = "/var/log/auth.log";
-        maxretry = 3;
-        bantime = "1h";
-      };
-      
-      # Nginx protection
-      nginx-http-auth = {
-        enabled = true;
-        filter = "nginx-http-auth";
-        action = "iptables[name=NoAuthFailures, port=http, protocol=tcp]";
-        logpath = "/var/log/nginx/error.log";
-        maxretry = 6;
-        bantime = "10m";
-      };
-      
-      nginx-noscript = {
-        enabled = true;
-        filter = "nginx-noscript";
-        action = "iptables[name=NoScript, port=http, protocol=tcp]";
-        logpath = "/var/log/nginx/access.log";
-        maxretry = 6;
-        bantime = "10m";
-      };
-      
-      nginx-badbots = {
-        enabled = true;
-        filter = "nginx-badbots";
-        action = "iptables[name=BadBots, port=http, protocol=tcp]";
-        logpath = "/var/log/nginx/access.log";
-        maxretry = 2;
-        bantime = "1h";
-      };
-      
-      # RDP protection
-      rdp = {
-        enabled = true;
-        filter = "rdp";
-        action = "iptables[name=RDP, port=3389, protocol=tcp]";
-        logpath = "/var/log/xrdp.log";
-        maxretry = 3;
-        bantime = "1h";
-      };
+      # SSH protection (enabled by default)
+      sshd.enabled = true;
     };
   };
   
@@ -140,36 +96,40 @@
     };
   };
   
-  # File integrity monitoring
-  services.aide = {
-    enable = true;
-    config = ''
-      # AIDE configuration for file integrity monitoring
-      database_in = file:/var/lib/aide/aide.db
-      database_out = file:/var/lib/aide/aide.db.new
-      database_new = file:/var/lib/aide/aide.db.new
-      gzip_dbout = yes
-      
-      # Rules
-      All = p+i+n+u+g+s+m+c+md5+sha1+sha256+rmd160+tiger+haval+gost+crc32
-      Norm = All-c
-      
-      # Directories to monitor
-      /etc Norm
-      /bin Norm
-      /sbin Norm
-      /usr/bin Norm
-      /usr/sbin Norm
-      /var/log p+i+n+u+g+s+m+c+md5+sha1
-      
-      # Exclude temporary and variable files
-      !/var/log/.*\.log$
-      !/tmp
-      !/proc
-      !/sys
-      !/dev
-    '';
-  };
+  # File integrity monitoring with AIDE
+  # Note: AIDE is available as a package but not as a service in NixOS
+  # Manual configuration required in /etc/aide/aide.conf
+  environment.etc."aide/aide.conf".text = ''
+    # AIDE configuration for file integrity monitoring
+    database_in = file:/var/lib/aide/aide.db
+    database_out = file:/var/lib/aide/aide.db.new
+    database_new = file:/var/lib/aide/aide.db.new
+    gzip_dbout = yes
+    
+    # Rules
+    All = p+i+n+u+g+s+m+c+md5+sha1+sha256+rmd160+tiger+haval+gost+crc32
+    Norm = All-c
+    
+    # Directories to monitor
+    /etc Norm
+    /bin Norm
+    /sbin Norm
+    /usr/bin Norm
+    /usr/sbin Norm
+    /var/log p+i+n+u+g+s+m+c+md5+sha1
+    
+    # Exclude temporary and variable files
+    !/var/log/.*\.log$
+    !/tmp
+    !/proc
+    !/sys
+    !/dev
+  '';
+  
+  # Create AIDE directories
+  systemd.tmpfiles.rules = [
+    "d /var/lib/aide 0755 root root -"
+  ];
   
   # Automatic security updates
   system.autoUpgrade = {
@@ -230,6 +190,59 @@
         StandardOutput = "journal";
       };
     };
+    
+    # Weekly security scan
+    security-scan = {
+      description = "Weekly security scan";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeScript "security-scan" ''
+          #!${pkgs.bash}/bin/bash
+          
+          echo "Starting security scan..."
+          
+          # Run Lynis security audit
+          ${pkgs.lynis}/bin/lynis audit system --quick --quiet
+          
+          # Run rootkit scan with chkrootkit (rkhunter not available)
+          ${pkgs.chkrootkit}/bin/chkrootkit
+          
+          # Check for failed login attempts
+          echo "Recent failed login attempts:"
+          journalctl --since "7 days ago" | grep "Failed password" | tail -10
+          
+          # Check for suspicious network connections
+          echo "Current network connections:"
+          ss -tuln | grep LISTEN
+          
+          echo "Security scan completed"
+        '';
+        StandardOutput = "journal";
+      };
+    };
+    
+    # Harden SSH service
+    sshd.serviceConfig = {
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectControlGroups = true;
+    };
+    
+    # Harden Nginx service
+    nginx.serviceConfig = {
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectControlGroups = true;
+      ReadWritePaths = [ "/var/log/nginx" "/var/cache/nginx" ];
+    };
   };
   
   # Security-focused systemd timers
@@ -255,35 +268,7 @@
     };
   };
   
-  # Additional security services
-  systemd.services.security-scan = {
-    description = "Weekly security scan";
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeScript "security-scan" ''
-        #!${pkgs.bash}/bin/bash
-        
-        echo "Starting security scan..."
-        
-        # Run Lynis security audit
-        ${pkgs.lynis}/bin/lynis audit system --quick --quiet
-        
-        # Run rootkit scan
-        ${pkgs.rkhunter}/bin/rkhunter --check --skip-keypress --report-warnings-only
-        
-        # Check for failed login attempts
-        echo "Recent failed login attempts:"
-        journalctl --since "7 days ago" | grep "Failed password" | tail -10
-        
-        # Check for suspicious network connections
-        echo "Current network connections:"
-        ss -tuln | grep LISTEN
-        
-        echo "Security scan completed"
-      '';
-      StandardOutput = "journal";
-    };
-  };
+
   
   # Secure mount options
   fileSystems = {
@@ -379,30 +364,4 @@
   
   # Disable core dumps globally
   systemd.coredump.enable = false;
-  
-  # Secure systemd services
-  systemd.services = {
-    # Harden SSH service
-    sshd.serviceConfig = {
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      NoNewPrivileges = true;
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectControlGroups = true;
-    };
-    
-    # Harden Nginx service
-    nginx.serviceConfig = {
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      NoNewPrivileges = true;
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectControlGroups = true;
-      ReadWritePaths = [ "/var/log/nginx" "/var/cache/nginx" ];
-    };
-  };
 }

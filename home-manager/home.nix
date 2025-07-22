@@ -45,9 +45,9 @@
     # Python development environment
     python312          # Python 3.12
     python312Packages.pip      # Python package installer
-    python312Packages.poetry   # Python dependency management
+    poetry             # Python dependency management (top-level package)
     python312Packages.virtualenv # Virtual environment tool
-    python312Packages.pipenv    # Pipeline virtual environment
+    pipenv             # Pipeline virtual environment (top-level package)
     
     # Modern sysadmin CLI tools - File operations
     eza                # Modern ls replacement (exa successor)
@@ -153,7 +153,7 @@
     };
     
     # User-specific shell functions
-    initExtra = ''
+    initContent = ''
       # Function to create and enter a directory
       mkcd() {
         mkdir -p "$1" && cd "$1"

@@ -264,13 +264,6 @@
       log = {
         mode = "file";
         level = "info";
-        file = {
-          log_rotate = true;
-          max_lines = 1000000;
-          max_size_shift = 28; # 256MB
-          daily_rotate = true;
-          max_days = 7;
-        };
       };
       
       # Alerting
@@ -808,60 +801,8 @@
     RateLimitBurst=10000
   '';
   
-  # Configure rsyslog for centralized logging
-  services.rsyslog = {
-    enable = true;
-    defaultConfig = ''
-      # Global configuration
-      global(
-        workDirectory="/var/spool/rsyslog"
-        maxMessageSize="64k"
-      )
-      
-      # Modules
-      module(load="imuxsock")    # provides support for local system logging
-      module(load="imklog")      # provides kernel logging support
-      module(load="imjournal")   # provides access to the systemd journal
-      
-      # Journal input
-      input(type="imjournal" StateFile="imjournal.state")
-      
-      # Templates for structured logging
-      template(name="DetailedFormat" type="string"
-        string="%timestamp:::date-rfc3339% %hostname% %syslogtag% %msg%\n")
-      
-      template(name="JSONFormat" type="string"
-        string="{ \"timestamp\": \"%timestamp:::date-rfc3339%\", \"hostname\": \"%hostname%\", \"facility\": \"%syslogfacility-text%\", \"severity\": \"%syslogseverity-text%\", \"tag\": \"%syslogtag%\", \"message\": \"%msg%\" }\n")
-      
-      # Log files with rotation
-      # System logs
-      *.info;mail.none;authpriv.none;cron.none    /var/log/messages;DetailedFormat
-      authpriv.*                                  /var/log/secure;DetailedFormat
-      mail.*                                      /var/log/maillog;DetailedFormat
-      cron.*                                      /var/log/cron;DetailedFormat
-      *.emerg                                     :omusrmsg:*
-      uucp,news.crit                             /var/log/spooler;DetailedFormat
-      local7.*                                   /var/log/boot.log;DetailedFormat
-      
-      # Service-specific logs
-      :programname, isequal, "nginx"             /var/log/nginx/nginx.log;DetailedFormat
-      :programname, isequal, "postgresql"        /var/log/postgresql/postgresql.log;DetailedFormat
-      :programname, isequal, "prometheus"        /var/log/prometheus/prometheus.log;DetailedFormat
-      :programname, isequal, "grafana"           /var/log/grafana/grafana.log;DetailedFormat
-      :programname, isequal, "sshd"              /var/log/ssh/ssh.log;DetailedFormat
-      :programname, isequal, "smbd"              /var/log/samba/samba.log;DetailedFormat
-      :programname, isequal, "docker"            /var/log/docker/docker.log;DetailedFormat
-      
-      # Development logs
-      :programname, startswith, "dev-"           /var/log/development/development.log;DetailedFormat
-      
-      # JSON formatted logs for analysis
-      *.info                                     /var/log/json/all.json;JSONFormat
-      
-      # Stop processing after logging to files
-      & stop
-    '';
-  };
+  # Enhanced systemd journal configuration (already configured in main config)
+  # NixOS uses systemd-journald by default, which is more appropriate than rsyslog
   
   # Log rotation configuration
   services.logrotate = {
@@ -889,17 +830,18 @@
         dateformat = "-%Y%m%d";
       };
       
-      # System logs
+      # System logs (handled by systemd journal)
+      # Note: These files may not exist since we use systemd-journald
       "/var/log/messages" = {
         rotate = 12;
         monthly = true;
-        postrotate = "systemctl reload rsyslog";
+        missingok = true;
       };
       
       "/var/log/secure" = {
         rotate = 12;
         monthly = true;
-        postrotate = "systemctl reload rsyslog";
+        missingok = true;
       };
       
       # Service logs
@@ -1083,11 +1025,14 @@
     "d /var/log/development 0755 root root -"
     "d /var/log/json 0755 root root -"
     
-    # Rsyslog working directory
-    "d /var/spool/rsyslog 0755 root root -"
+
     
     # Log analysis cache
     "d /var/cache/log-analysis 0755 root root -"
+    
+    # Prometheus directories
+    "d /var/lib/prometheus 0755 prometheus prometheus -"
+    "d /var/lib/prometheus-node-exporter-text-files 0755 prometheus prometheus -"
   ];
   
   # Systemd service for log cleanup and maintenance
@@ -1143,9 +1088,5 @@
   
   users.groups.prometheus = {};
   
-  # Ensure required directories exist with proper permissions
-  systemd.tmpfiles.rules = [
-    "d /var/lib/prometheus 0755 prometheus prometheus -"
-    "d /var/lib/prometheus-node-exporter-text-files 0755 prometheus prometheus -"
-  ];
+
 }

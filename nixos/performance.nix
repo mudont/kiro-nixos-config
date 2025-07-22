@@ -113,7 +113,7 @@
     nethogs
     iftop
     nload
-    dstat
+    dool      # Replacement for deprecated dstat
     sysstat
     perf-tools
     stress-ng
