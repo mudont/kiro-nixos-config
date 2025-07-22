@@ -205,12 +205,17 @@ validate_configuration() {
     
     # Validate flake syntax
     log_info "Checking flake syntax..."
-    if nix flake check --no-build 2>/dev/null; then
-        log_success "Flake syntax is valid"
+    if command -v nix >/dev/null 2>&1; then
+        if nix flake check --no-build 2>/dev/null; then
+            log_success "Flake syntax is valid"
+        else
+            log_error "Flake syntax validation failed"
+            log_info "Run 'nix flake check' for detailed error information"
+            exit 1
+        fi
     else
-        log_error "Flake syntax validation failed"
-        log_info "Run 'nix flake check' for detailed error information"
-        exit 1
+        log_warning "Nix not installed on Mac - skipping flake syntax validation"
+        log_info "Flake will be validated on the NixOS server during rebuild"
     fi
     
     # Check for required files

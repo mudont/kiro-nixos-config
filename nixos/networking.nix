@@ -8,7 +8,7 @@
   networking.networkmanager.enable = true;
   
   # DNS configuration
-  networking.nameservers = [ "8.8.8.8" "8.8.4.4" "1.1.1.1" ];
+  networking.nameservers = [ "192.168.1.1" ];
   
   # Firewall configuration
   networking.firewall = {
