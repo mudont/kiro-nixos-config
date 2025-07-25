@@ -220,9 +220,9 @@ validate_configuration() {
     
     # Check for required files
     local required_files=(
-        "nixos/configuration.nix"
-        "nixos/networking.nix"
-        "nixos/users.nix"
+        "configuration.nix"
+        "networking.nix"
+        "users.nix"
         "home-manager/home.nix"
     )
     
@@ -261,6 +261,7 @@ deploy_configuration() {
             --exclude='result*' \
             --exclude='*.tmp' \
             --exclude='.DS_Store' \
+            --rsync-path="sudo rsync" \
             "$LOCAL_CONFIG_DIR/" "$NIXOS_USER@$NIXOS_HOST:$NIXOS_CONFIG_DIR/"
         return 0
     fi
@@ -277,17 +278,32 @@ deploy_configuration() {
     
     # Deploy configuration files
     log_info "Syncing configuration files..."
-    if rsync -avz --delete \
+    
+    # Deploy entire project structure to preserve flake directory layout
+    if ! rsync -avz --delete \
         --exclude='.git' \
+        --exclude='.kiro' \
         --exclude='result*' \
         --exclude='*.tmp' \
         --exclude='.DS_Store' \
+        --exclude='scripts/' \
+        --exclude='tests/' \
+        --exclude='docs/' \
+        --rsync-path="sudo rsync" \
         "$LOCAL_CONFIG_DIR/" "$NIXOS_USER@$NIXOS_HOST:$NIXOS_CONFIG_DIR/"; then
-        log_success "Configuration files deployed successfully"
-    else
         log_error "Failed to deploy configuration files"
         exit 1
     fi
+    
+    # Deploy flake files
+    if ! rsync -avz \
+        --rsync-path="sudo rsync" \
+        "$LOCAL_CONFIG_DIR/flake.nix" "$LOCAL_CONFIG_DIR/flake.lock" "$NIXOS_USER@$NIXOS_HOST:$NIXOS_CONFIG_DIR/"; then
+        log_error "Failed to deploy flake files"
+        exit 1
+    fi
+    
+    log_success "Configuration files deployed successfully"
     
     # Set correct ownership
     ssh "$NIXOS_USER@$NIXOS_HOST" "sudo chown -R root:root $NIXOS_CONFIG_DIR"

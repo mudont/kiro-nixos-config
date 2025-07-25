@@ -844,12 +844,7 @@
         missingok = true;
       };
       
-      # Service logs
-      "/var/log/nginx/*.log" = {
-        daily = true;
-        rotate = 30;
-        postrotate = "systemctl reload nginx";
-      };
+      # Service logs (nginx logrotate is handled automatically by NixOS)
       
       "/var/log/postgresql/*.log" = {
         daily = true;

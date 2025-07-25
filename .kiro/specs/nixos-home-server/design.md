@@ -46,7 +46,7 @@ graph TB
 - **SSH**: Port 22 (local network only)
 - **HTTP/HTTPS**: Ports 80/443 for web services
 - **Samba**: Ports 139/445 for file sharing
-- **Remote Desktop**: Port 3389 for RDP access
+- **Remote Desktop**: Port 5900 for VNC access
 - **PostgreSQL**: Port 5432 (localhost only)
 
 ## Components and Interfaces
@@ -110,11 +110,11 @@ flake.nix                 # Main flake configuration
 - Lower resource usage compared to GNOME
 - Proven track record for remote desktop scenarios
 
-**Remote Desktop Protocol: XRDP**
-- Native RDP protocol works well with macOS built-in client
-- More reliable than VNC for Mac-to-Linux connections
-- Supports clipboard sharing and file transfer
-- Better performance over network than X11 forwarding
+**Remote Desktop Protocol: VNC**
+- VNC protocol provides reliable cross-platform remote desktop access
+- x11vnc allows sharing of existing X11 session for seamless experience
+- Better compatibility with various VNC clients on macOS (built-in Screen Sharing, VNC Viewer)
+- More stable connection handling compared to XRDP for XFCE desktop environment
 
 ### 4. Web Services Stack
 
@@ -156,7 +156,7 @@ Port 80   (HTTP)    - All interfaces (redirect to HTTPS)
 Port 443  (HTTPS)   - All interfaces
 Port 139  (NetBIOS) - All interfaces (for Samba)
 Port 445  (SMB)     - All interfaces (for Samba)
-Port 3389 (RDP)     - Local network only
+Port 5900 (VNC)     - Local network only
 ```
 
 **SSH Security:**
@@ -220,9 +220,11 @@ Port 3389 (RDP)     - Local network only
     nginx.enable = true;
     postgresql.enable = true;
     samba.enable = true;
-    xrdp.enable = true;
     openssh.enable = true;
   };
+  
+  # VNC remote desktop via x11vnc
+  systemd.services.x11vnc.enable = true;
 }
 ```
 

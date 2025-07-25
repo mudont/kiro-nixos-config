@@ -10,40 +10,17 @@
     # Data directory
     dataDir = "/var/lib/postgresql/15";
     
-    # Listen only on localhost for security
+    # Basic settings - keep it simple to avoid issues
     settings = {
       listen_addresses = "localhost";
       port = 5432;
-      
-      # Memory and performance settings
-      shared_buffers = "256MB";
-      effective_cache_size = "1GB";
-      maintenance_work_mem = "64MB";
-      checkpoint_completion_target = 0.9;
-      wal_buffers = "16MB";
-      default_statistics_target = 100;
-      random_page_cost = 1.1;
-      effective_io_concurrency = 200;
-      
-      # Logging settings for development
-      log_destination = "stderr";
-      logging_collector = true;
-      log_directory = "/var/log/postgresql";
-      log_filename = "postgresql-%Y-%m-%d_%H%M%S.log";
-      log_rotation_age = "1d";
-      log_rotation_size = "10MB";
-      log_min_messages = "warning";
-      log_min_error_statement = "error";
-      log_min_duration_statement = 1000; # Log slow queries (>1s)
-      
-      # Connection settings
       max_connections = 100;
-      superuser_reserved_connections = 3;
-      
-      # Security settings
-      ssl = true;
-      ssl_cert_file = "/var/lib/postgresql/server.crt";
-      ssl_key_file = "/var/lib/postgresql/server.key";
+      shared_buffers = "128MB";
+      # Explicitly disable SSL
+      ssl = false;
+      # Disable custom logging to avoid file system issues
+      log_destination = "stderr";
+      logging_collector = false;
     };
     
     # Authentication configuration (localhost trust for development)
