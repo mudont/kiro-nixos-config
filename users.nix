@@ -6,7 +6,7 @@
   users.users.murali = {
     isNormalUser = true;
     description = "Murali - Development User";
-    extraGroups = [ "wheel" "networkmanager" "docker" "samba" ];
+    extraGroups = [ "wheel" "networkmanager" "docker" "samba" "audio" "video" ];
     shell = pkgs.zsh;
     home = "/home/murali";
     createHome = true;

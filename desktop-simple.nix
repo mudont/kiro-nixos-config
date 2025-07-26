@@ -9,18 +9,9 @@
     # Use XFCE desktop environment
     desktopManager.xfce.enable = true;
     
-    # Configure display manager
+    # Configure display manager with autologin
     displayManager = {
-      lightdm = {
-        enable = true;
-        greeters.gtk = {
-          enable = true;
-          theme = {
-            name = "Adwaita";
-            package = pkgs.gnome-themes-extra;
-          };
-        };
-      };
+      lightdm.enable = true;
     };
     
     # Configure keyboard layout
@@ -30,7 +21,7 @@
     };
   };
   
-  # Configure display manager session and autologin
+  # Configure display manager autologin
   services.displayManager = {
     defaultSession = "xfce";
     autoLogin = {
@@ -83,19 +74,6 @@
     
     # Clipboard manager
     xfce.xfce4-clipman-plugin
-    
-    # VNC packages for remote desktop
-    x11vnc
-    tigervnc
-    
-    # Additional packages for stable XFCE session
-    xorg.xauth
-    xorg.xinit
-    xorg.xhost
-    dbus
-    at-spi2-atk
-    at-spi2-core
-    glib
   ];
   
   # Configure XFCE settings
@@ -109,15 +87,6 @@
     alsa.support32Bit = true;
     pulse.enable = true;
   };
-  
-  # Enable essential desktop services
-  services.dbus.enable = true;
-  services.udisks2.enable = true;
-  services.upower.enable = true;
-  services.accounts-daemon.enable = true;
-  
-  # Enable polkit for desktop authentication
-  security.polkit.enable = true;
   
   # Configure fonts
   fonts.packages = with pkgs; [
