@@ -135,4 +135,23 @@
   environment.sessionVariables = {
     XFCE_PANEL_MIGRATE_DEFAULT = "1";
   };
+  
+  # VNC configuration to share the existing XFCE session
+  systemd.services.x11vnc = {
+    description = "x11vnc VNC Server";
+    after = [ "display-manager.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      User = "root";  # Run as root to access display :0
+      ExecStartPre = [
+        # Wait for X11 to be ready
+        "${pkgs.bash}/bin/bash -c 'while ! ${pkgs.xorg.xdpyinfo}/bin/xdpyinfo -display :0 >/dev/null 2>&1; do sleep 1; done'"
+      ];
+      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :0 -forever -shared -nopw -bg -o /var/log/x11vnc.log -noxdamage -noxfixes -solid -rfbport 5900";
+      ExecStop = "${pkgs.procps}/bin/pkill x11vnc";
+      Restart = "on-failure";
+      RestartSec = "5";
+    };
+  };
 }

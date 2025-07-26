@@ -42,10 +42,10 @@
       iptables -A nixos-fw -p tcp --dport 22 -s 10.0.0.0/8 -j ACCEPT
       iptables -A nixos-fw -p tcp --dport 22 -s 172.16.0.0/12 -j ACCEPT
       
-      # Allow VNC from local network only (port 5901 for display :1)
-      iptables -A nixos-fw -p tcp --dport 5901 -s 192.168.0.0/16 -j ACCEPT
-      iptables -A nixos-fw -p tcp --dport 5901 -s 10.0.0.0/8 -j ACCEPT
-      iptables -A nixos-fw -p tcp --dport 5901 -s 172.16.0.0/12 -j ACCEPT
+      # Allow VNC from local network only (port 5900 for display :0)
+      iptables -A nixos-fw -p tcp --dport 5900 -s 192.168.0.0/16 -j ACCEPT
+      iptables -A nixos-fw -p tcp --dport 5900 -s 10.0.0.0/8 -j ACCEPT
+      iptables -A nixos-fw -p tcp --dport 5900 -s 172.16.0.0/12 -j ACCEPT
       
       # Allow Prometheus and monitoring services from local network only
       iptables -A nixos-fw -p tcp --dport 9090 -s 192.168.0.0/16 -j ACCEPT  # Prometheus

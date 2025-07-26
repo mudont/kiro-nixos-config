@@ -266,13 +266,7 @@
         level = "info";
       };
       
-      # Alerting
-      alerting = {
-        enabled = true;
-        execute_alerts = true;
-      };
-      
-      # Unified alerting
+      # Unified alerting (replaces legacy alerting)
       "unified_alerting" = {
         enabled = true;
       };
