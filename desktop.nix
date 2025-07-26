@@ -92,10 +92,15 @@
     xorg.xauth
     xorg.xinit
     xorg.xhost
+    xorg.xset
     dbus
     at-spi2-atk
     at-spi2-core
     glib
+    
+    # Clipboard utilities for VNC
+    xclip
+    xsel
   ];
   
   # Configure XFCE settings
@@ -148,7 +153,7 @@
         # Wait for X11 to be ready
         "${pkgs.bash}/bin/bash -c 'while ! ${pkgs.xorg.xdpyinfo}/bin/xdpyinfo -display :0 >/dev/null 2>&1; do sleep 1; done'"
       ];
-      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :0 -forever -shared -nopw -bg -o /var/log/x11vnc.log -noxdamage -noxfixes -solid -rfbport 5900";
+      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :0 -forever -shared -nopw -bg -o /var/log/x11vnc.log -noxdamage -noxfixes -solid -rfbport 5900 -clipboard -selection-delay 150";
       ExecStop = "${pkgs.procps}/bin/pkill x11vnc";
       Restart = "on-failure";
       RestartSec = "5";
