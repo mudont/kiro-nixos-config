@@ -5,9 +5,10 @@ A comprehensive NixOS configuration for a development-focused home server that p
 ## Features
 
 - **Complete Development Environment**: TypeScript, Java, C++, Rust, Python with modern tooling
-- **Remote Access**: XFCE desktop with XRDP for macOS compatibility
-- **Web Services**: Nginx with SSL/TLS, PostgreSQL database
+- **Remote Desktop Access**: XFCE desktop with VNC for reliable cross-platform access
+- **Web Services**: Nginx with HTTP/HTTPS, PostgreSQL database
 - **File Sharing**: Samba shares accessible from iOS and macOS devices
+- **Container Support**: Docker and Podman for containerized development
 - **Monitoring**: Prometheus and Grafana for system monitoring
 - **Automated Backups**: Multiple backup strategies including Mac folder sync
 - **Security**: Firewall configuration, SSH key authentication, fail2ban protection
@@ -20,9 +21,20 @@ A comprehensive NixOS configuration for a development-focused home server that p
 - NixOS installed on target hardware
 - macOS machine for deployment and remote access
 - Network connectivity between Mac and NixOS server
-- GitHub account for configuration backup
+- SSH access to the NixOS server
 
-### Initial Setup
+### Current System Status
+
+This configuration provides:
+- ✅ **XFCE Desktop**: Running on physical display with autologin
+- ✅ **VNC Remote Access**: Port 5900 with clipboard support (VNC Viewer)
+- ✅ **Web Server**: Nginx running on ports 80/443
+- ✅ **Database**: PostgreSQL for development
+- ✅ **File Sharing**: Samba shares for macOS/iOS access
+- ✅ **Development Environment**: Node.js, Python, Java, Rust, Docker
+- ✅ **Security**: Firewall, SSH keys, fail2ban protection
+
+### Deployment
 
 1. **Clone the repository on your Mac:**
    ```bash
@@ -30,27 +42,21 @@ A comprehensive NixOS configuration for a development-focused home server that p
    cd nixos-home-server
    ```
 
-2. **Configure your settings:**
+2. **Deploy the configuration:**
    ```bash
-   # Edit the hostname and network settings
-   nano nixos/networking.nix
+   # Make deployment script executable
+   chmod +x scripts/deploy-from-mac.sh
    
-   # Update user configuration
-   nano nixos/users.nix
+   # Deploy with automatic approval of uncommitted changes
+   ./scripts/deploy-from-mac.sh deploy-and-rebuild --allow-uncommitted
    ```
 
-3. **Set up SSH access:**
-   ```bash
-   # Run the deployment script which will set up SSH keys
-   ./scripts/deploy-from-mac.sh
-   ```
-
-4. **Deploy the configuration:**
-   The deployment script will automatically:
-   - Copy SSH keys to the NixOS server
-   - Transfer the configuration files
-   - Rebuild the NixOS system
-   - Verify services are running
+3. **The deployment script will:**
+   - Validate the NixOS configuration
+   - Transfer files to the NixOS server
+   - Rebuild the system with new configuration
+   - Run health checks to verify services
+   - Provide rollback if deployment fails
 
 ## Detailed Setup Guide
 
@@ -111,9 +117,10 @@ The configuration includes several service modules that can be customized:
 - **Private Shares**: Local network only
 - **iOS Compatibility**: SMB3 protocol support
 
-#### Remote Desktop (`nixos/services/desktop.nix`)
-- **XFCE**: Lightweight desktop environment
-- **XRDP**: Remote desktop protocol for macOS compatibility
+#### Remote Desktop (`desktop.nix`)
+- **XFCE**: Lightweight desktop environment with autologin
+- **VNC**: x11vnc server for reliable remote desktop access
+- **Screen Lock**: Disabled for seamless remote access
 
 #### Development Environment (`nixos/services/development.nix`)
 - **Languages**: Node.js, Java, C++, Rust, Python
@@ -146,7 +153,10 @@ The configuration includes several service modules that can be customized:
    ssh murali@nixos  # or use the IP address
    
    # Check system status
-   systemctl status nginx postgresql samba xrdp
+   systemctl status nginx postgresql samba-smbd display-manager
+   
+   # Check VNC server
+   ps aux | grep x11vnc
    ```
 
 ## Configuration Options
@@ -156,10 +166,10 @@ The configuration includes several service modules that can be customized:
 The firewall is configured in `nixos/networking.nix` with the following ports:
 
 - **SSH (22)**: Local network only
-- **HTTP (80)**: All interfaces (redirects to HTTPS)
-- **HTTPS (443)**: All interfaces
+- **HTTP (80)**: All interfaces 
+- **HTTPS (443)**: All interfaces (when SSL configured)
 - **Samba (139/445)**: All interfaces for file sharing
-- **RDP (3389)**: Local network only
+- **VNC (5900)**: Local network only for remote desktop
 
 ### Development Tools
 
@@ -183,13 +193,13 @@ environment.systemPackages = with pkgs; [
 
 ### Monitoring Configuration
 
-Monitoring services are configured in `nixos/services/monitoring.nix`:
+Monitoring services are configured in `monitoring.nix`:
 
-- **Prometheus**: Metrics collection on port 9090
-- **Grafana**: Visualization dashboards on port 3000
-- **Node Exporter**: System metrics on port 9100
+- **Prometheus**: Metrics collection on port 9090 (local network only)
+- **Grafana**: Visualization dashboards on port 3000 (local network only)
+- **Node Exporter**: System metrics on port 9100 (local network only)
 
-Access Grafana at `https://your-server-ip:3000` (admin/admin default login).
+Access Grafana at `http://nixos:3000` from local network (admin/admin default login).
 
 ### Backup Configuration
 
@@ -199,17 +209,54 @@ Backup services are configured in `nixos/services/backup.nix`:
 - **iCloud via rclone**: Alternative backup (requires setup)
 - **Git configuration backup**: Automatic commits
 
+## Current Service Status
+
+### Working Services ✅
+
+| Service | Status | Port | Access |
+|---------|--------|------|--------|
+| **SSH** | ✅ Active | 22 | Local network |
+| **VNC** | ✅ Active | 5900 | Local network |
+| **HTTP** | ✅ Active | 80 | All interfaces |
+| **Samba** | ✅ Active | 139/445 | All interfaces |
+| **PostgreSQL** | ✅ Active | 5432 | Localhost only |
+| **Docker** | ✅ Active | - | Local access |
+| **XFCE Desktop** | ✅ Active | Physical display | Autologin enabled |
+
+### Service Health Check
+
+```bash
+# Quick health check
+ssh nixos "systemctl is-active sshd nginx postgresql samba-smbd docker"
+
+# Detailed status
+ssh nixos "systemctl status display-manager"
+
+# Check VNC server
+ssh nixos "ps aux | grep x11vnc"
+```
+
 ## Usage Guide
 
 ### Remote Desktop Access
 
-1. **From macOS**: Use the built-in "Microsoft Remote Desktop" app
-   - Server: `nixos.local` or server IP
-   - Port: 3389
-   - Username: Your configured username
-   - Password: Your user password
+#### VNC Access (Recommended)
 
-2. **Session Management**: XFCE desktop will start automatically
+1. **Using VNC Viewer (Best Experience)**:
+   - Install: `brew install --cask vnc-viewer`
+   - Connection: `nixos:5900`
+   - Password: `murali` (or your username)
+   - Features: Full clipboard support, better performance
+
+2. **Using macOS Built-in Screen Sharing**:
+   - Finder → `Cmd+K` → `vnc://nixos:5900`
+   - Password: `murali` (or your username)
+   - Note: No clipboard support, but works as fallback
+
+3. **Session Details**:
+   - Shares the physical XFCE desktop session
+   - Screen lock is disabled for seamless access
+   - Autologin configured for immediate desktop availability
 
 ### File Sharing Access
 
@@ -287,7 +334,10 @@ sudo systemctl start backup-to-mac.service
 
 ```bash
 # Check service status
-systemctl status nginx postgresql samba xrdp
+systemctl status nginx postgresql samba-smbd display-manager
+
+# Check VNC server
+ps aux | grep x11vnc
 
 # Restart a service
 sudo systemctl restart nginx
@@ -322,23 +372,26 @@ sudo iptables -L | grep ssh
 ping nixos.local
 ```
 
-#### 2. Remote desktop connection fails
+#### 2. VNC remote desktop connection fails
 
-**Symptoms**: Cannot connect via RDP from macOS
+**Symptoms**: Cannot connect via VNC from macOS
 
 **Solutions**:
 ```bash
-# Check XRDP service status
-systemctl status xrdp
+# Check if x11vnc is running
+ps aux | grep x11vnc
 
-# Verify RDP port is open
-sudo netstat -tlnp | grep 3389
+# Verify VNC port is open
+sudo netstat -tlnp | grep 5900
 
 # Check firewall rules
-sudo iptables -L | grep 3389
+sudo iptables -L | grep 5900
 
-# Restart XRDP service
-sudo systemctl restart xrdp
+# Check if XFCE desktop is running
+ps aux | grep xfce
+
+# Manually start VNC if needed
+sudo DISPLAY=:0 x11vnc -display :0 -forever -shared -nopw -rfbport 5900 -auth /var/run/lightdm/root/:0 -bg
 ```
 
 #### 3. File sharing not accessible

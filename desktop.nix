@@ -101,6 +101,9 @@
     # Clipboard utilities for VNC
     xclip
     xsel
+    
+    # Simple window manager for XRDP testing
+    fluxbox
   ];
   
   # Configure XFCE settings
@@ -133,7 +136,8 @@
     noto-fonts-emoji
   ];
   
-  # Disable XRDP
+  # XRDP disabled - VNC is working well and provides better compatibility
+  # RDP has compatibility issues with XFCE on NixOS
   services.xrdp.enable = false;
   
   # Configure session environment

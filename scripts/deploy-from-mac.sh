@@ -55,13 +55,15 @@ Options:
     --user <username>   Override NixOS username (default: murali)
     --dry-run          Show what would be deployed without making changes
     --force            Skip confirmation prompts
+    --allow-uncommitted Continue with uncommitted changes without prompting
     --verbose          Enable verbose output
 
 Examples:
     $0 setup-ssh
     $0 validate
     $0 deploy --dry-run
-    $0 deploy-and-rebuild
+    $0 deploy-and-rebuild --allow-uncommitted
+    $0 full-deploy --allow-uncommitted
     $0 status
 EOF
 }
@@ -70,6 +72,7 @@ EOF
 COMMAND=""
 DRY_RUN=false
 FORCE=false
+ALLOW_UNCOMMITTED=false
 VERBOSE=false
 
 while [[ $# -gt 0 ]]; do
@@ -88,6 +91,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --force)
             FORCE=true
+            shift
+            ;;
+        --allow-uncommitted)
+            ALLOW_UNCOMMITTED=true
             shift
             ;;
         --verbose)
@@ -237,7 +244,7 @@ validate_configuration() {
     if [ -d ".git" ]; then
         if [ -n "$(git status --porcelain)" ]; then
             log_warning "There are uncommitted changes in the repository"
-            if [ "$FORCE" != true ]; then
+            if [ "$FORCE" != true ] && [ "$ALLOW_UNCOMMITTED" != true ]; then
                 read -p "Continue with uncommitted changes? (y/N): " -n 1 -r
                 echo
                 if [[ ! $REPLY =~ ^[Yy]$ ]]; then

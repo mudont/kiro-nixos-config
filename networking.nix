@@ -47,6 +47,11 @@
       iptables -A nixos-fw -p tcp --dport 5900 -s 10.0.0.0/8 -j ACCEPT
       iptables -A nixos-fw -p tcp --dport 5900 -s 172.16.0.0/12 -j ACCEPT
       
+      # Allow RDP from local network only (port 3389 for XRDP)
+      iptables -A nixos-fw -p tcp --dport 3389 -s 192.168.0.0/16 -j ACCEPT
+      iptables -A nixos-fw -p tcp --dport 3389 -s 10.0.0.0/8 -j ACCEPT
+      iptables -A nixos-fw -p tcp --dport 3389 -s 172.16.0.0/12 -j ACCEPT
+      
       # Allow Prometheus and monitoring services from local network only
       iptables -A nixos-fw -p tcp --dport 9090 -s 192.168.0.0/16 -j ACCEPT  # Prometheus
       iptables -A nixos-fw -p tcp --dport 9090 -s 10.0.0.0/8 -j ACCEPT
@@ -86,6 +91,12 @@
       iptables -D nixos-fw -p tcp --dport 22 -s 192.168.0.0/16 -j ACCEPT 2>/dev/null || true
       iptables -D nixos-fw -p tcp --dport 22 -s 10.0.0.0/8 -j ACCEPT 2>/dev/null || true
       iptables -D nixos-fw -p tcp --dport 22 -s 172.16.0.0/12 -j ACCEPT 2>/dev/null || true
+      # Clean up VNC firewall rules
+      iptables -D nixos-fw -p tcp --dport 5900 -s 192.168.0.0/16 -j ACCEPT 2>/dev/null || true
+      iptables -D nixos-fw -p tcp --dport 5900 -s 10.0.0.0/8 -j ACCEPT 2>/dev/null || true
+      iptables -D nixos-fw -p tcp --dport 5900 -s 172.16.0.0/12 -j ACCEPT 2>/dev/null || true
+      
+      # Clean up RDP firewall rules
       iptables -D nixos-fw -p tcp --dport 3389 -s 192.168.0.0/16 -j ACCEPT 2>/dev/null || true
       iptables -D nixos-fw -p tcp --dport 3389 -s 10.0.0.0/8 -j ACCEPT 2>/dev/null || true
       iptables -D nixos-fw -p tcp --dport 3389 -s 172.16.0.0/12 -j ACCEPT 2>/dev/null || true
