@@ -60,10 +60,12 @@
   - Set up essential desktop applications and utilities
   - _Requirements: 2.1_
 
-- [x] 4.2 Set up VNC remote desktop service
-  - Configure x11vnc service to share existing X11 session
-  - Set up VNC server with systemd service for automatic startup
-  - Configure VNC security settings and connection management
+- [ ] 4.2 Fix VNC remote desktop service for reliable operation
+  - Remove current broken VNC systemd service configuration
+  - Implement proper x11vnc systemd service with correct timing and dependencies
+  - Configure VNC to start automatically after X11 session is ready
+  - Set up proper authentication and connection management
+  - Test VNC connection stability and clipboard functionality
   - _Requirements: 2.3, 2.4_
 
 - [x] 4.3 Configure SSH service for secure remote access

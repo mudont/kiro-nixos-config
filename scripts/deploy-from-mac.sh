@@ -44,7 +44,6 @@ Commands:
     sync-git            Synchronize Git credentials and SSH keys
     validate            Validate local configuration before deployment
     deploy              Deploy configuration to NixOS server
-    deploy-and-rebuild  Deploy configuration and rebuild NixOS system
     full-deploy         Complete deployment with Git sync and rebuild
     status              Check deployment status and connectivity
     rollback            Rollback to previous configuration on server
@@ -61,7 +60,7 @@ Examples:
     $0 setup-ssh
     $0 validate
     $0 deploy --dry-run
-    $0 deploy-and-rebuild
+    $0 full-deploy
     $0 status
 EOF
 }
@@ -94,7 +93,7 @@ while [[ $# -gt 0 ]]; do
             VERBOSE=true
             shift
             ;;
-        setup-ssh|sync-git|validate|deploy|deploy-and-rebuild|full-deploy|status|rollback|test-connection|help|--help|-h)
+        setup-ssh|sync-git|validate|deploy|full-deploy|status|rollback|test-connection|help|--help|-h)
             COMMAND="$1"
             shift
             ;;
@@ -236,15 +235,7 @@ validate_configuration() {
     # Check Git status
     if [ -d ".git" ]; then
         if [ -n "$(git status --porcelain)" ]; then
-            log_warning "There are uncommitted changes in the repository"
-            if [ "$FORCE" != true ]; then
-                read -p "Continue with uncommitted changes? (y/N): " -n 1 -r
-                echo
-                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                    log_info "Deployment cancelled"
-                    exit 0
-                fi
-            fi
+            log_warning "There are uncommitted changes in the repository - continuing anyway"
         fi
     fi
     
@@ -618,12 +609,6 @@ case "$COMMAND" in
         check_prerequisites
         validate_configuration
         deploy_configuration
-        ;;
-    deploy-and-rebuild)
-        check_prerequisites
-        validate_configuration
-        deploy_configuration
-        rebuild_nixos
         ;;
     full-deploy)
         check_prerequisites

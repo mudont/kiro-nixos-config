@@ -5,7 +5,7 @@ A comprehensive NixOS configuration for a development-focused home server that p
 ## Features
 
 - **Complete Development Environment**: TypeScript, Java, C++, Rust, Python with modern tooling
-- **Remote Access**: XFCE desktop with XRDP for macOS compatibility
+- **Remote Access**: XFCE desktop with VNC for remote desktop access
 - **Web Services**: Nginx with SSL/TLS, PostgreSQL database
 - **File Sharing**: Samba shares accessible from iOS and macOS devices
 - **Monitoring**: Prometheus and Grafana for system monitoring
@@ -25,24 +25,27 @@ A comprehensive NixOS configuration for a development-focused home server that p
 ### Initial Setup
 
 1. **Clone the repository on your Mac:**
+
    ```bash
    git clone <repository-url> nixos-home-server
    cd nixos-home-server
    ```
 
 2. **Configure your settings:**
+
    ```bash
    # Edit the hostname and network settings
    nano nixos/networking.nix
-   
+
    # Update user configuration
    nano nixos/users.nix
    ```
 
 3. **Set up SSH access:**
+
    ```bash
    # Run the deployment script which will set up SSH keys
-   ./scripts/deploy-from-mac.sh
+   ./scripts/deploy-from-mac.sh setup-ssh
    ```
 
 4. **Deploy the configuration:**
@@ -69,13 +72,13 @@ Edit `nixos/networking.nix` to configure your network settings:
 {
   networking = {
     hostName = "nixos";  # Change this to your preferred hostname
-    
+
     # Configure static IP (optional but recommended)
     interfaces.eth0.ipv4.addresses = [{
       address = "192.168.1.100";  # Change to your desired IP
       prefixLength = 24;
     }];
-    
+
     defaultGateway = "192.168.1.1";  # Your router's IP
     nameservers = [ "8.8.8.8" "1.1.1.1" ];
   };
@@ -102,20 +105,24 @@ Edit `nixos/users.nix` to configure your user account:
 The configuration includes several service modules that can be customized:
 
 #### Web Services (`nixos/services/web.nix`)
+
 - **Nginx**: Reverse proxy and static file serving
 - **SSL**: Automatic certificate management with Let's Encrypt
 - **PostgreSQL**: Database service for development
 
 #### File Sharing (`nixos/services/samba.nix`)
+
 - **Public Share**: `/srv/public-share` accessible from internet
 - **Private Shares**: Local network only
 - **iOS Compatibility**: SMB3 protocol support
 
 #### Remote Desktop (`nixos/services/desktop.nix`)
+
 - **XFCE**: Lightweight desktop environment
-- **XRDP**: Remote desktop protocol for macOS compatibility
+- **VNC**: Remote desktop access with x11vnc server
 
 #### Development Environment (`nixos/services/development.nix`)
+
 - **Languages**: Node.js, Java, C++, Rust, Python
 - **Containers**: Docker and Podman
 - **Modern CLI Tools**: exa, bat, fd, ripgrep, htop, and more
@@ -123,13 +130,15 @@ The configuration includes several service modules that can be customized:
 ### Step 5: Deployment
 
 1. **Make the deployment script executable:**
+
    ```bash
    chmod +x scripts/deploy-from-mac.sh
    ```
 
 2. **Run the deployment:**
+
    ```bash
-   ./scripts/deploy-from-mac.sh
+   ./scripts/deploy-from-mac.sh full-deploy
    ```
 
    The script will:
@@ -141,12 +150,13 @@ The configuration includes several service modules that can be customized:
    - Verify all services are running
 
 3. **Verify the deployment:**
+
    ```bash
    # SSH into your server
    ssh murali@nixos  # or use the IP address
-   
+
    # Check system status
-   systemctl status nginx postgresql samba xrdp
+   systemctl status nginx postgresql samba x11vnc
    ```
 
 ## Configuration Options
@@ -159,7 +169,7 @@ The firewall is configured in `nixos/networking.nix` with the following ports:
 - **HTTP (80)**: All interfaces (redirects to HTTPS)
 - **HTTPS (443)**: All interfaces
 - **Samba (139/445)**: All interfaces for file sharing
-- **RDP (3389)**: Local network only
+- **VNC (5900)**: Local network only (password: `murali`)
 
 ### Development Tools
 
@@ -173,7 +183,7 @@ environment.systemPackages = with pkgs; [
   gcc clang cmake
   rustc cargo
   python312 poetry
-  
+
   # Modern CLI tools
   exa bat fd ripgrep
   htop btop glances
@@ -203,13 +213,39 @@ Backup services are configured in `nixos/services/backup.nix`:
 
 ### Remote Desktop Access
 
-1. **From macOS**: Use the built-in "Microsoft Remote Desktop" app
+1. **From macOS**: Use VNC Viewer (recommended) or other VNC clients
    - Server: `nixos.local` or server IP
-   - Port: 3389
-   - Username: Your configured username
-   - Password: Your user password
+   - Port: 5900
+   - Password: `murali`
 
-2. **Session Management**: XFCE desktop will start automatically
+2. **Clipboard Support**: Copy-paste functionality works with VNC Viewer only
+   - Other VNC clients may not support clipboard synchronization
+   - For best experience, use RealVNC Viewer with clipboard options enabled
+
+3. **Session Management**: XFCE desktop will start automatically
+
+#### VNC Client Setup
+
+**For VNC Viewer (RealVNC):**
+
+1. Download VNC Viewer from RealVNC website
+2. Create new connection with server IP and port 5900
+3. In connection properties, enable clipboard transfer options
+4. Connect using password `murali`
+
+**For other VNC clients:**
+
+- Screen Sharing (macOS built-in): Basic functionality, no clipboard
+- TigerVNC: Good performance, limited clipboard support
+- TightVNC: Basic functionality
+
+#### VNC Troubleshooting
+
+If VNC is not working after reboot, manually start it:
+
+```bash
+ssh nixos "sudo DISPLAY=:0 x11vnc -display :0 -forever -shared -rfbport 5900 -auth /var/run/lightdm/root/:0 -rfbauth /etc/vnc/passwd -logfile /var/log/x11vnc.log -bg"
+```
 
 ### File Sharing Access
 
@@ -224,15 +260,17 @@ Backup services are configured in `nixos/services/backup.nix`:
 ### Development Workflow
 
 1. **SSH into the server**:
+
    ```bash
    ssh murali@nixos
    ```
 
 2. **Start development**:
+
    ```bash
    # Clone your projects
    git clone your-repo
-   
+
    # Use modern CLI tools
    exa -la        # Better ls
    bat file.txt   # Better cat
@@ -241,10 +279,11 @@ Backup services are configured in `nixos/services/backup.nix`:
    ```
 
 3. **Container development**:
+
    ```bash
    # Docker
    docker run -it ubuntu
-   
+
    # Podman (rootless)
    podman run -it ubuntu
    ```
@@ -252,6 +291,7 @@ Backup services are configured in `nixos/services/backup.nix`:
 ### Web Development
 
 1. **Database access**:
+
    ```bash
    sudo -u postgres psql
    ```
@@ -287,7 +327,7 @@ sudo systemctl start backup-to-mac.service
 
 ```bash
 # Check service status
-systemctl status nginx postgresql samba xrdp
+systemctl status nginx postgresql samba x11vnc
 
 # Restart a service
 sudo systemctl restart nginx
@@ -311,6 +351,7 @@ journalctl -u nginx -f
 **Symptoms**: Connection refused or timeout when trying to SSH
 
 **Solutions**:
+
 ```bash
 # Check if SSH service is running on the server
 systemctl status sshd
@@ -322,23 +363,27 @@ sudo iptables -L | grep ssh
 ping nixos.local
 ```
 
-#### 2. Remote desktop connection fails
+#### 2. VNC remote desktop connection fails
 
-**Symptoms**: Cannot connect via RDP from macOS
+**Symptoms**: Cannot connect via VNC from macOS
 
 **Solutions**:
-```bash
-# Check XRDP service status
-systemctl status xrdp
 
-# Verify RDP port is open
-sudo netstat -tlnp | grep 3389
+```bash
+# Check if VNC server is running
+ps aux | grep x11vnc
+
+# Check VNC port is open
+sudo netstat -tlnp | grep 5900
 
 # Check firewall rules
-sudo iptables -L | grep 3389
+sudo iptables -L | grep 5900
 
-# Restart XRDP service
-sudo systemctl restart xrdp
+# Start VNC manually if needed
+sudo DISPLAY=:0 x11vnc -display :0 -forever -shared -rfbport 5900 -auth /var/run/lightdm/root/:0 -rfbauth /etc/vnc/passwd -logfile /var/log/x11vnc.log -bg
+
+# Check VNC logs
+sudo tail -f /var/log/x11vnc.log
 ```
 
 #### 3. File sharing not accessible
@@ -346,6 +391,7 @@ sudo systemctl restart xrdp
 **Symptoms**: Cannot see or connect to Samba shares
 
 **Solutions**:
+
 ```bash
 # Check Samba service
 systemctl status smbd nmbd
@@ -365,6 +411,7 @@ sudo systemctl restart smbd nmbd
 **Symptoms**: Cannot access web pages or SSL certificate issues
 
 **Solutions**:
+
 ```bash
 # Check Nginx status
 systemctl status nginx
@@ -388,6 +435,7 @@ sudo -u postgres psql -c "SELECT version();"
 **Symptoms**: Command not found for development tools
 
 **Solutions**:
+
 ```bash
 # Rebuild the system to ensure all packages are installed
 sudo nixos-rebuild switch --flake .
@@ -405,6 +453,7 @@ which node java rustc python3
 **Symptoms**: Backup services failing or not running
 
 **Solutions**:
+
 ```bash
 # Check backup service logs
 journalctl -u backup-to-mac.service
@@ -424,6 +473,7 @@ rsync -av /home/ mac-username@mac-ip:/backup/nixos/
 **Symptoms**: Cannot access Grafana or Prometheus
 
 **Solutions**:
+
 ```bash
 # Check Prometheus
 systemctl status prometheus
@@ -499,22 +549,26 @@ iotop
 ## Security Considerations
 
 ### SSH Security
+
 - Password authentication is disabled
 - Root login is disabled
 - fail2ban protects against brute force attacks
 - SSH keys are required for access
 
 ### Firewall Configuration
+
 - Only necessary ports are open
 - Local network restrictions for sensitive services
 - Regular security updates via NixOS
 
 ### SSL/TLS
+
 - Automatic certificate management
 - Strong cipher suites
 - HSTS headers enabled
 
 ### File Sharing Security
+
 - User-based authentication required
 - Rate limiting for internet access
 - Separate shares for public and private data
@@ -534,7 +588,7 @@ To add custom services, create a new module in `nixos/services/`:
     description = "My Custom Service";
     after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
-    
+
     serviceConfig = {
       ExecStart = "${pkgs.my-package}/bin/my-service";
       Restart = "always";
@@ -566,7 +620,7 @@ Customize the shell environment in `home-manager/home.nix`:
       find = "fd";
       grep = "rg";
     };
-    
+
     oh-my-zsh = {
       enable = true;
       plugins = [ "git" "docker" "kubectl" ];
@@ -595,6 +649,7 @@ Customize the shell environment in `home-manager/home.nix`:
 ### Reporting Issues
 
 When reporting issues, please include:
+
 - NixOS version: `nixos-version`
 - System information: `uname -a`
 - Relevant logs: `journalctl -u service-name`

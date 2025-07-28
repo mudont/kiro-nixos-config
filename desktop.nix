@@ -88,6 +88,10 @@
     x11vnc
     tigervnc
     
+    # Utilities needed by x11vnc
+    gawk
+    nettools
+    
     # Additional packages for stable XFCE session
     xorg.xauth
     xorg.xinit
@@ -133,30 +137,48 @@
     noto-fonts-emoji
   ];
   
-  # Disable XRDP
-  services.xrdp.enable = false;
-  
   # Configure session environment
   environment.sessionVariables = {
     XFCE_PANEL_MIGRATE_DEFAULT = "1";
   };
   
-  # VNC configuration - manual start approach (more reliable)
-  # Create a script to start VNC manually
-  environment.etc."start-vnc.sh" = {
-    text = ''
-      #!/bin/bash
-      # Kill any existing VNC server
-      pkill x11vnc 2>/dev/null || true
-      
-      # Wait a moment
-      sleep 2
-      
-      # Start VNC server
-      DISPLAY=:0 x11vnc -display :0 -forever -shared -nopw -rfbport 5900 -auth /var/run/lightdm/root/:0 -bg -o /var/log/x11vnc.log
-      
-      echo "VNC server started on port 5900"
-    '';
-    mode = "0755";
+  # VNC password file
+  environment.etc."vnc/passwd" = {
+    text = ""; # Will be created by systemd service
+    mode = "0600";
+    user = "root";
+    group = "root";
+  };
+  
+  # VNC Server Configuration - Working with password authentication
+  systemd.services.x11vnc = {
+    description = "x11vnc VNC Server";
+    after = [ "display-manager.service" "graphical-session.target" ];
+    wants = [ "display-manager.service" ];
+    wantedBy = [ "multi-user.target" ];
+    
+    serviceConfig = {
+      Type = "forking";
+      User = "root";
+      # Create password file and start VNC
+      ExecStartPre = [
+        "${pkgs.coreutils}/bin/sleep 15"
+        "${pkgs.writeShellScript "setup-vnc-password" ''
+          #!/bin/bash
+          mkdir -p /etc/vnc
+          echo 'murali' | ${pkgs.tigervnc}/bin/vncpasswd -f > /etc/vnc/passwd
+          chmod 600 /etc/vnc/passwd
+        ''}"
+      ];
+      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :0 -forever -shared -rfbport 5900 -auth /var/run/lightdm/root/:0 -rfbauth /etc/vnc/passwd -logfile /var/log/x11vnc.log -bg -xkb -noxrecord -noxfixes -noxdamage -nomodtweak";
+      ExecStop = "${pkgs.procps}/bin/pkill x11vnc";
+      Restart = "on-failure";
+      RestartSec = "10";
+      TimeoutStartSec = "45";
+    };
+    
+    environment = {
+      DISPLAY = ":0";
+    };
   };
 }
